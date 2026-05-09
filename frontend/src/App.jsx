@@ -3,9 +3,21 @@ import './App.css';
 import Sidebar from './components/Sidebar';
 import Dashboard from './features/Dashboard';
 import AddProduct from './features/AddProduct';
+import Login from './features/Login';
+import { AuthService } from './api/AuthService';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = React.useState(AuthService.isAuthenticated());
   const [currentView, setCurrentView] = React.useState('dashboard');
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    AuthService.logout();
+    setIsAuthenticated(false);
+  };
 
   const renderView = () => {
     switch (currentView) {
@@ -30,9 +42,13 @@ function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="app-container">
-      <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+      <Sidebar currentView={currentView} onViewChange={setCurrentView} onLogout={handleLogout} />
       <main className="main-content">
         {renderView()}
       </main>

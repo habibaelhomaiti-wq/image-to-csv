@@ -53,10 +53,18 @@ class AIService:
 
     def __init__(self):
         api_key = settings.OPENAI_API_KEY
-        if not api_key:
-            raise AIServiceError("OPENAI_API_KEY not configured")
+        if not api_key or "your-openai-api-key" in api_key:
+            raise AIServiceError("OPENAI_API_KEY non configurée dans le fichier .env")
 
-        self.client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+        # Détecte si c'est une clé OpenRouter ou OpenAI
+        base_url = None
+        if api_key.startswith("sk-or-"):
+            base_url = "https://openrouter.ai/api/v1"
+            logger.info("Utilisation de l'API OpenRouter")
+        else:
+            logger.info("Utilisation de l'API OpenAI standard")
+
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = settings.OPENAI_MODEL
 
     def analyze(self, images: List[Tuple[bytes, str]]) -> List[dict]:
