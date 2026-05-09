@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 
 use App\Models\Product;
 use App\Services\AI\AIServiceInterface;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
@@ -26,25 +25,32 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        // This is the 'Analyze' endpoint
         $request->validate([
-            'image' => 'required|image|max:5120', // 5MB max
+            'images.*' => 'required|image|max:5120',
+            'images' => 'required|array|min:1',
         ]);
 
-        $path = $request->file('image')->store('products/images', 'public');
+        $products = [];
+        $paths = [];
 
-        $product = Product::create([
-            'user_id' => $request->user()->id,
-            'image_path' => $path,
-            'status' => 'pending',
-        ]);
+        foreach ($request->file('images') as $image) {
+            $path = $image->store('products/images', 'public');
+            $paths[] = $path;
+            
+            $product = Product::create([
+                'user_id' => $request->user()->id,
+                'image_path' => $path,
+                'status' => 'pending',
+            ]);
+            $products[] = $product;
+        }
 
-        // Dispatch background job for AI Analysis
-        \App\Jobs\ProcessProductImage::dispatch($product);
+        // Dispatch batch background job
+        \App\Jobs\ProcessProductBatch::dispatch($products);
 
         return response()->json([
-            'message' => 'L\'image a été téléchargée et l\'analyse est en cours.',
-            'product' => $product
+            'message' => count($products) . ' images téléchargées. Analyse groupée en cours.',
+            'products' => $products
         ], 202);
     }
 

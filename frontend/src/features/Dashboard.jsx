@@ -1,6 +1,7 @@
-import React from 'react';
-import { TrendingUp, TrendingDown, Clock, Package, FileSpreadsheet, BrainCircuit } from 'lucide-react';
-import { MOCK_STATS, RECENT_PRODUCTS } from '../mock/data';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Clock, Package, FileSpreadsheet, BrainCircuit, Loader2 } from 'lucide-react';
+import { MOCK_STATS } from '../mock/data';
+import { ProductService } from '../api/ProductService';
 
 const StatCard = ({ stat }) => (
   <div className="glass-card">
@@ -27,7 +28,7 @@ const StatCard = ({ stat }) => (
   </div>
 );
 
-const RecentActivity = () => (
+const RecentActivity = ({ products, loading }) => (
   <div className="glass-card" style={{ marginTop: 'var(--spacing-lg)' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
       <h3 style={{ fontSize: '1.2rem' }}>Activité Récente</h3>
@@ -41,52 +42,70 @@ const RecentActivity = () => (
     </div>
     
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-        <thead>
-          <tr style={{ color: 'var(--text-muted)', fontSize: '0.85rem', borderBottom: '1px solid var(--border-color)' }}>
-            <th style={{ padding: '12px 8px' }}>PRODUIT</th>
-            <th style={{ padding: '12px 8px' }}>CATÉGORIE</th>
-            <th style={{ padding: '12px 8px' }}>PLATEFORME</th>
-            <th style={{ padding: '12px 8px' }}>PRIX</th>
-            <th style={{ padding: '12px 8px' }}>STATUT</th>
-            <th style={{ padding: '12px 8px' }}>DATE</th>
-          </tr>
-        </thead>
-        <tbody>
-          {RECENT_PRODUCTS.map((product) => (
-            <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '0.9rem' }} className="table-row">
-              <td style={{ padding: '16px 8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <img src={product.image} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
-                  <span style={{ fontWeight: '500' }}>{product.name}</span>
-                </div>
-              </td>
-              <td style={{ padding: '16px 8px', color: 'var(--text-secondary)' }}>{product.category}</td>
-              <td style={{ padding: '16px 8px' }}>
-                <span style={{ 
-                  background: 'rgba(255, 255, 255, 0.05)', 
-                  padding: '4px 8px', 
-                  borderRadius: '6px',
-                  fontSize: '0.8rem'
-                }}>{product.platform}</span>
-              </td>
-              <td style={{ padding: '16px 8px', fontWeight: '600' }}>{product.price}</td>
-              <td style={{ padding: '16px 8px' }}>
-                <span style={{ 
-                  color: product.status === 'Publié' ? 'var(--accent-secondary)' : 'var(--accent-primary)',
-                  fontSize: '0.8rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  ● {product.status}
-                </span>
-              </td>
-              <td style={{ padding: '16px 8px', color: 'var(--text-muted)' }}>{product.date}</td>
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+          <Loader2 className="pulse" size={32} color="var(--accent-primary)" />
+        </div>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead>
+            <tr style={{ color: 'var(--text-muted)', fontSize: '0.85rem', borderBottom: '1px solid var(--border-color)' }}>
+              <th style={{ padding: '12px 8px' }}>PRODUIT</th>
+              <th style={{ padding: '12px 8px' }}>CATÉGORIE</th>
+              <th style={{ padding: '12px 8px' }}>MARQUE</th>
+              <th style={{ padding: '12px 8px' }}>PRIX</th>
+              <th style={{ padding: '12px 8px' }}>STATUT</th>
+              <th style={{ padding: '12px 8px' }}>DATE</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {products.length > 0 ? products.map((product) => (
+              <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '0.9rem' }} className="table-row">
+                <td style={{ padding: '16px 8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img 
+                      src={product.image_path ? `http://localhost:8000/storage/${product.image_path}` : 'https://via.placeholder.com/40'} 
+                      alt="" 
+                      style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} 
+                    />
+                    <span style={{ fontWeight: '500' }}>{product.name || 'Produit sans nom'}</span>
+                  </div>
+                </td>
+                <td style={{ padding: '16px 8px', color: 'var(--text-secondary)' }}>{product.category || 'Non classé'}</td>
+                <td style={{ padding: '16px 8px' }}>
+                  <span style={{ 
+                    background: 'rgba(255, 255, 255, 0.05)', 
+                    padding: '4px 8px', 
+                    borderRadius: '6px',
+                    fontSize: '0.8rem'
+                  }}>{product.brand || '-'}</span>
+                </td>
+                <td style={{ padding: '16px 8px', fontWeight: '600' }}>{product.price ? `${product.price} €` : '-'}</td>
+                <td style={{ padding: '16px 8px' }}>
+                  <span style={{ 
+                    color: (product.status === 'completed' || product.status === 'analyzed') ? 'var(--accent-secondary)' : 'var(--accent-primary)',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    ● {product.status === 'completed' ? 'Publié' : (product.status === 'analyzed' ? 'Analyse terminée' : product.status)}
+                  </span>
+                </td>
+                <td style={{ padding: '16px 8px', color: 'var(--text-muted)' }}>
+                  {new Date(product.created_at).toLocaleDateString()}
+                </td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  Aucun produit trouvé. Commencez par en scanner un !
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
     </div>
     <style>{`
       .table-row:hover {
@@ -97,10 +116,37 @@ const RecentActivity = () => (
 );
 
 const Dashboard = ({ onStartScan }) => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(MOCK_STATS);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const data = await ProductService.getProducts();
+        setProducts(data.data || []);
+        
+        // Optionally update stats based on real data
+        if (data.total !== undefined) {
+          const newStats = [...MOCK_STATS];
+          newStats[0].value = data.total.toLocaleString();
+          setStats(newStats);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des produits:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   return (
     <div>
       <header style={{ marginBottom: 'var(--spacing-xl)' }}>
-        <h1 style={{ fontSize: '2.2rem', marginBottom: '8px' }}>Bon retour, Marc 👋</h1>
+        <h1 style={{ fontSize: '2.2rem', marginBottom: '8px' }}>Bon retour 👋</h1>
         <p style={{ color: 'var(--text-secondary)' }}>Voici ce qui s'est passé sur votre catalogue aujourd'hui.</p>
       </header>
 
@@ -109,7 +155,7 @@ const Dashboard = ({ onStartScan }) => {
         gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
         gap: 'var(--spacing-md)' 
       }}>
-        {MOCK_STATS.map(stat => <StatCard key={stat.id} stat={stat} />)}
+        {stats.map(stat => <StatCard key={stat.id} stat={stat} />)}
       </div>
 
       <div style={{ 
@@ -118,7 +164,7 @@ const Dashboard = ({ onStartScan }) => {
         gap: 'var(--spacing-lg)',
         marginTop: 'var(--spacing-lg)'
       }}>
-        <RecentActivity />
+        <RecentActivity products={products} loading={loading} />
         
         <div className="glass-card" style={{ marginTop: 'var(--spacing-lg)' }}>
           <h3 style={{ fontSize: '1.2rem', marginBottom: 'var(--spacing-md)' }}>Quick Actions</h3>

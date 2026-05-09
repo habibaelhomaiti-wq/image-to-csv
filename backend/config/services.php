@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'ai' => [
+        'base_url' => env('AI_SERVICE_URL', 'http://localhost:5000'),
+    ],
+
 ];

@@ -1,41 +1,133 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Camera, BrainCircuit, CheckCircle2, ArrowRight, X, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, Camera, BrainCircuit, CheckCircle2, ArrowRight, X, Sparkles, Loader2 } from 'lucide-react';
 import { PLATFORMS, CATEGORIES } from '../mock/data';
+import { ProductService } from '../api/ProductService';
 
 const AddProduct = () => {
   const [step, setStep] = useState('upload'); // upload, scanning, editing
-  const [images, setImages] = useState([]);
-  const [activeImage, setActiveImage] = useState(0);
-  const [aiResult, setAiResult] = useState(null);
+  const [products, setProducts] = useState([]); // Array of { id, preview, file, status, aiResult }
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      const urls = files.map(file => URL.createObjectURL(file));
-      setImages(urls);
+  const pollIntervals = useRef({});
+
+  const handleUpload = async (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
       setStep('scanning');
+      setError('');
+      
+      try {
+        const response = await ProductService.analyzeImages(selectedFiles);
+        const newProducts = response.products.map((product, idx) => ({
+          id: product.id,
+          preview: URL.createObjectURL(selectedFiles[idx]),
+          file: selectedFiles[idx],
+          status: 'pending',
+          aiResult: null
+        }));
+        
+        setProducts(newProducts);
+        
+        // Start polling for all products
+        newProducts.forEach(p => startPolling(p.id));
+      } catch (err) {
+        console.error("Erreur upload batch:", err);
+        setError("Erreur lors de l'envoi des images au serveur.");
+        setStep('upload');
+      }
     }
   };
 
+  const startPolling = (productId) => {
+    if (pollIntervals.current[productId]) clearInterval(pollIntervals.current[productId]);
+
+    pollIntervals.current[productId] = setInterval(async () => {
+      try {
+        const product = await ProductService.getProduct(productId);
+        if (product.status === 'completed' || product.status === 'analyzed' || product.ai_raw_metadata) {
+          clearInterval(pollIntervals.current[productId]);
+          delete pollIntervals.current[productId];
+
+          setProducts(prev => prev.map(p => p.id === productId ? {
+            ...p,
+            status: 'analyzed',
+            aiResult: {
+              title: product.name || '',
+              description: product.description || '',
+              category: product.category || 'Autre',
+              price: product.price || '0.00',
+              brand: product.brand || '',
+              confidence: 0.95
+            }
+          } : p));
+
+          // If all products are analyzed, we can move to editing if we haven't already
+          setStep('editing');
+        } else if (product.status === 'failed') {
+          clearInterval(pollIntervals.current[productId]);
+          delete pollIntervals.current[productId];
+          setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'failed' } : p));
+        }
+      } catch (err) {
+        console.error("Erreur polling:", err);
+      }
+    }, 2000);
+  };
+
   useEffect(() => {
-    if (step === 'scanning') {
-      const timer = setTimeout(() => {
-        setAiResult({
-          title: 'Nike Air Max 270 React',
-          description: 'La Nike Air Max 270 React utilise la mousse Nike React pour une foulée fluide et légère. Le coloris inspiré des courants artistiques du siècle dernier allie style et confort.',
-          category: 'Chaussures',
-          price: '150.00',
-          tags: ['Nike', 'Sneakers', 'Streetwear', 'React'],
-          confidence: 0.98
-        });
-        setStep('editing');
-      }, 3500);
-      return () => clearTimeout(timer);
+    return () => {
+      Object.values(pollIntervals.current).forEach(clearInterval);
+    };
+  }, []);
+
+  const handlePublish = async (e) => {
+    e.preventDefault();
+    const currentProduct = products[activeIndex];
+    if (!currentProduct) return;
+
+    setLoading(true);
+    try {
+      const formData = new FormData(e.target);
+      const data = {
+        name: formData.get('title'),
+        category: formData.get('category'),
+        price: formData.get('price'),
+        description: formData.get('description'),
+        status: 'completed'
+      };
+      await ProductService.updateProduct(currentProduct.id, data);
+      
+      // Mark as published in local state
+      setProducts(prev => prev.map((p, idx) => idx === activeIndex ? { ...p, status: 'completed' } : p));
+      
+      // If there are more products to review, move to the next one
+      const nextIndex = products.findIndex((p, idx) => idx > activeIndex && p.status === 'analyzed');
+      if (nextIndex !== -1) {
+        setActiveIndex(nextIndex);
+      } else {
+        alert("Produit publié avec succès !");
+      }
+    } catch (err) {
+      console.error("Erreur publication:", err);
+      alert("Erreur lors de la publication.");
+    } finally {
+      setLoading(false);
     }
-  }, [step]);
+  };
+
+  const currentProduct = products[activeIndex];
+  const aiResult = currentProduct?.aiResult;
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      {error && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
+          {error}
+        </div>
+      )}
+
       {step === 'upload' && (
         <div className="glass-card" style={{ 
           height: '500px', 
@@ -71,10 +163,15 @@ const AddProduct = () => {
       {step === 'scanning' && (
         <div className="glass-card" style={{ textAlign: 'center', position: 'relative', overflow: 'hidden', minHeight: '500px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: 'var(--spacing-md)' }}>
-            {images.map((img, idx) => (
+            {products.map((p, idx) => (
               <div key={idx} style={{ position: 'relative', height: '150px', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
-                <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 <div className="scanner-line"></div>
+                {p.status === 'analyzed' && (
+                  <div style={{ position: 'absolute', top: 8, right: 8, background: 'var(--accent-secondary)', borderRadius: '50%', padding: '4px' }}>
+                    <CheckCircle2 size={16} color="white" />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -86,17 +183,17 @@ const AddProduct = () => {
             flexDirection: 'column'
           }}>
             <BrainCircuit size={48} color="var(--accent-primary)" className="pulse" />
-            <h3 style={{ marginTop: '16px', color: 'white' }}>Analyse multi-images en cours...</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>L'IA regroupe les informations et compare les angles</p>
+            <h3 style={{ marginTop: '16px', color: 'white' }}>Analyse par l'IA en cours...</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Traitement de {products.length} image(s)</p>
           </div>
         </div>
       )}
 
-      {step === 'editing' && (
+      {step === 'editing' && currentProduct && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 'var(--spacing-lg)' }}>
           <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ position: 'relative', height: '400px' }}>
-              <img src={images[activeImage]} alt="Active" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={currentProduct.preview} alt="Active" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ 
                 position: 'absolute', 
                 bottom: '12px', 
@@ -107,90 +204,89 @@ const AddProduct = () => {
                 fontSize: '0.75rem',
                 color: 'white'
               }}>
-                Image {activeImage + 1} / {images.length}
+                Produit {activeIndex + 1} / {products.length}
               </div>
             </div>
             
             <div style={{ padding: 'var(--spacing-md)' }}>
               <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '12px' }}>
-                {images.map((img, idx) => (
-                  <img 
-                    key={idx} 
-                    src={img} 
-                    onClick={() => setActiveImage(idx)}
-                    style={{ 
-                      width: '60px', 
-                      height: '60px', 
-                      borderRadius: '4px', 
-                      objectFit: 'cover',
-                      cursor: 'pointer',
-                      border: activeImage === idx ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                      opacity: activeImage === idx ? 1 : 0.6
-                    }} 
-                  />
+                {products.map((p, idx) => (
+                  <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
+                    <img 
+                      src={p.preview} 
+                      onClick={() => setActiveIndex(idx)}
+                      style={{ 
+                        width: '60px', 
+                        height: '60px', 
+                        borderRadius: '4px', 
+                        objectFit: 'cover',
+                        cursor: 'pointer',
+                        border: activeIndex === idx ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                        opacity: activeIndex === idx ? 1 : 0.6
+                      }} 
+                    />
+                    {p.status === 'completed' && (
+                      <div style={{ position: 'absolute', top: -5, right: -5, background: 'var(--accent-secondary)', borderRadius: '50%', padding: '2px' }}>
+                        <CheckCircle2 size={12} color="white" />
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-secondary)', fontSize: '0.9rem', marginBottom: '8px' }}>
                 <Sparkles size={16} />
-                <span>Analyse Multi-Angle Terminée</span>
+                <span>{currentProduct.status === 'analyzed' ? 'Analyse IA Terminée' : (currentProduct.status === 'completed' ? 'Publié' : 'Analyse en cours...')}</span>
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {images.length} photos analysées. L'IA a fusionné les données pour une meilleure précision.
-              </p>
             </div>
           </div>
 
-          <div className="glass-card">
-            <h3 style={{ marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Réviser la Fiche Produit <CheckCircle2 size={20} color="var(--accent-secondary)" />
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={labelStyle}>Titre du Produit</label>
-                <input type="text" className="form-input" defaultValue={aiResult.title} />
-              </div>
+          {aiResult ? (
+            <form className="glass-card" onSubmit={handlePublish} key={currentProduct.id}>
+              <h3 style={{ marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Réviser la Fiche {products.length > 1 ? `#${activeIndex + 1}` : ''} <CheckCircle2 size={20} color="var(--accent-secondary)" />
+              </h3>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
-                  <label style={labelStyle}>Catégorie</label>
-                  <select className="form-input">
-                    {CATEGORIES.map(c => <option key={c} selected={c === aiResult.category}>{c}</option>)}
-                  </select>
+                  <label style={labelStyle}>Titre du Produit</label>
+                  <input type="text" name="title" className="form-input" defaultValue={aiResult.title} required />
                 </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={labelStyle}>Catégorie</label>
+                    <select name="category" className="form-input" defaultValue={aiResult.category}>
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Prix (€)</label>
+                    <input type="number" name="price" className="form-input" defaultValue={aiResult.price} step="0.01" />
+                  </div>
+                </div>
+
                 <div>
-                  <label style={labelStyle}>Prix (€)</label>
-                  <input type="number" className="form-input" defaultValue={aiResult.price} />
+                  <label style={labelStyle}>Description</label>
+                  <textarea name="description" className="form-input" rows="4" defaultValue={aiResult.description}></textarea>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: 'var(--spacing-md)' }}>
+                  <button type="button" className="action-btn secondary" onClick={() => setStep('upload')}>
+                    <X size={18} /> Annuler
+                  </button>
+                  <button type="submit" className="action-btn primary" style={{ flex: 1 }} disabled={loading || currentProduct.status === 'completed'}>
+                    {loading ? <Loader2 className="pulse" /> : (currentProduct.status === 'completed' ? 'Déjà Publié' : 'Publier Maintenant')} <ArrowRight size={18} />
+                  </button>
                 </div>
               </div>
-
-              <div>
-                <label style={labelStyle}>Description</label>
-                <textarea className="form-input" rows="4" defaultValue={aiResult.description}></textarea>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Plateformes de Publication</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
-                  {PLATFORMS.map(p => (
-                    <button key={p.id} className="platform-toggle">
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: 'var(--spacing-md)' }}>
-                <button className="action-btn secondary" onClick={() => setStep('upload')}>
-                  <X size={18} /> Annuler
-                </button>
-                <button className="action-btn primary" style={{ flex: 1 }}>
-                  Publier Maintenant <ArrowRight size={18} />
-                </button>
-              </div>
+            </form>
+          ) : (
+            <div className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+              <Loader2 className="spin" size={32} />
+              <p style={{ marginTop: '12px' }}>Attente de l'analyse...</p>
             </div>
-          </div>
+          )}
         </div>
       )}
 

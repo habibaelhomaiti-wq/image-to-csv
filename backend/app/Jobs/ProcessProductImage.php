@@ -2,9 +2,6 @@
 
 namespace App\Jobs;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Queue\Queueable;
-
 use App\Models\Product;
 use App\Services\AI\AIServiceInterface;
 use Illuminate\Bus\Queueable;

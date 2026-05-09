@@ -10,7 +10,7 @@ import {
   Zap
 } from 'lucide-react';
 
-const Sidebar = ({ currentView, onViewChange }) => {
+const Sidebar = ({ currentView, onViewChange, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'add-product', icon: PlusCircle, label: 'Nouveau Produit' },
@@ -115,18 +115,20 @@ const Sidebar = ({ currentView, onViewChange }) => {
             </li>
           ))}
           <li style={{ marginTop: 'var(--spacing-md)' }}>
-            <button style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px',
-              color: '#ef4444',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '0.95rem'
-            }}>
+            <button 
+              onClick={onLogout}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px',
+                color: '#ef4444',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.95rem'
+              }}>
               <LogOut size={20} />
               Déconnexion
             </button>
