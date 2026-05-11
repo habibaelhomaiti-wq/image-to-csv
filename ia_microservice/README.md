@@ -48,6 +48,9 @@ cp .env.example .env
 
 # Lancer le serveur
 python manage.py runserver
+
+#Lancer le server dans un autre port
+python manage.py runserver 5000
 ```
 
 ## Configuration

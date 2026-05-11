@@ -28,5 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \Illuminate\Support\Facades\Schema::defaultStringLength(191);
+        \Illuminate\Support\Facades\Gate::policy(\App\Models\ProductList::class, \App\Policies\ProductListPolicy::class);
+        \Illuminate\Support\Facades\Gate::policy(\App\Models\Product::class, \App\Policies\ProductPolicy::class);
     }
 }
