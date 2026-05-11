@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Zap, Loader2, AlertCircle } from 'lucide-react';
+import { Zap, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { AuthService } from '../api/AuthService';
 
 const Login = ({ onLoginSuccess }) => {
@@ -29,38 +29,40 @@ const Login = ({ onLoginSuccess }) => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'var(--bg-primary)'
+      background: '#f8fafc',
+      padding: '20px'
     }}>
-      <div className="glass-card" style={{ width: '400px', padding: 'var(--spacing-xl)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
+      <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '420px', padding: '48px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{
-            background: 'var(--accent-primary)',
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
+            background: 'linear-gradient(135deg, var(--primary) 0%, #818cf8 100%)',
+            width: '56px',
+            height: '56px',
+            borderRadius: '14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px',
-            boxShadow: 'var(--shadow-accent)'
+            margin: '0 auto 20px',
+            boxShadow: '0 8px 16px rgba(79, 70, 229, 0.2)'
           }}>
-            <Zap size={24} color="white" />
+            <Zap size={28} color="white" fill="white" />
           </div>
-          <h2 style={{ fontFamily: 'Outfit', fontSize: '1.8rem' }}>Bienvenue</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Connectez-vous pour gérer vos produits</p>
+          <h1 style={{ fontSize: '1.8rem', letterSpacing: '-0.5px' }}>Bon retour</h1>
+          <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>Connectez-vous à votre espace ScanFlow</p>
         </div>
 
         {error && (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.1)',
+            background: '#fef2f2',
             color: '#ef4444',
-            padding: '12px',
-            borderRadius: '8px',
-            marginBottom: '20px',
+            padding: '14px',
+            borderRadius: '10px',
+            marginBottom: '24px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            fontSize: '0.9rem'
+            gap: '10px',
+            fontSize: '0.85rem',
+            border: '1px solid #fee2e2'
           }}>
             <AlertCircle size={18} />
             {error}
@@ -68,46 +70,62 @@ const Login = ({ onLoginSuccess }) => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '600' }}>Email</label>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={labelStyle}>Adresse Email</label>
             <input
               type="email"
-              className="form-input"
+              className="input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="votre@email.com"
+              placeholder="nom@entreprise.com"
               required
-              style={{ width: '100%', marginTop: '4px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '8px', color: 'white' }}
             />
           </div>
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '600' }}>Mot de passe</label>
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={labelStyle}>Mot de passe</label>
+              <span style={{ fontSize: '0.75rem', color: 'var(--primary)', cursor: 'pointer', fontWeight: '600' }}>Oublié ?</span>
+            </div>
             <input
               type="password"
-              className="form-input"
+              className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              style={{ width: '100%', marginTop: '4px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '8px', color: 'white' }}
             />
           </div>
           <button
             type="submit"
-            className="action-btn primary"
+            className="btn btn-primary"
             disabled={loading}
-            style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: 'var(--accent-primary)', color: 'white', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            style={{ width: '100%', height: '52px' }}
           >
-            {loading ? <Loader2 className="pulse" size={20} /> : 'Se connecter'}
+            {loading ? <Loader2 className="spin" size={20} /> : 'Se connecter'}
           </button>
         </form>
         
-        <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Pas encore de compte ? <span style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>Créer un compte</span>
-        </p>
+        <div style={{ marginTop: '32px', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            Pas encore de compte ? <span style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: '600' }}>Inscrivez-vous</span>
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '20px', color: 'var(--text-light)', fontSize: '0.75rem' }}>
+            <ShieldCheck size={14} /> Connexion sécurisée
+          </div>
+        </div>
       </div>
     </div>
   );
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: '0.75rem',
+  fontWeight: '700',
+  color: 'var(--text-muted)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
+  marginBottom: '8px'
 };
 
 export default Login;

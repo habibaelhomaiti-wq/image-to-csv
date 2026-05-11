@@ -1,218 +1,212 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Clock, Package, FileSpreadsheet, BrainCircuit, Loader2 } from 'lucide-react';
+import { 
+  TrendingUp, TrendingDown, Clock, Package, FileSpreadsheet, 
+  BrainCircuit, Loader2, Trash2, ExternalLink, Download, Sparkles,
+  ArrowRight, Plus
+} from 'lucide-react';
 import { MOCK_STATS } from '../mock/data';
 import { ProductService } from '../api/ProductService';
+import { useToast } from '../context/ToastContext';
 
-const StatCard = ({ stat }) => (
-  <div className="glass-card">
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-      <div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>{stat.label}</p>
-        <h3 style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{stat.value}</h3>
-      </div>
-      <div style={{
-        padding: '4px 8px',
-        borderRadius: 'var(--radius-sm)',
-        fontSize: '0.75rem',
-        fontWeight: 'bold',
-        background: stat.trend === 'up' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-        color: stat.trend === 'up' ? 'var(--accent-secondary)' : '#ef4444',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px'
-      }}>
-        {stat.trend === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-        {stat.change}
-      </div>
-    </div>
-  </div>
-);
-
-const RecentActivity = ({ products, loading }) => (
-  <div className="glass-card" style={{ marginTop: 'var(--spacing-lg)' }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-      <h3 style={{ fontSize: '1.2rem' }}>Activité Récente</h3>
-      <button style={{ 
-        background: 'transparent', 
-        border: 'none', 
-        color: 'var(--accent-primary)', 
-        cursor: 'pointer',
-        fontSize: '0.9rem'
-      }}>Voir tout</button>
-    </div>
-    
-    <div style={{ overflowX: 'auto' }}>
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-          <Loader2 className="pulse" size={32} color="var(--accent-primary)" />
+const StatCard = ({ stat }) => {
+  const isPositive = stat.trend === 'up';
+  return (
+    <div className="card" style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ 
+          background: isPositive ? 'var(--secondary-light)' : '#fef2f2', 
+          padding: '8px', 
+          borderRadius: '10px' 
+        }}>
+          {stat.id === 1 ? <Package size={20} color="var(--primary)" /> : 
+           stat.id === 2 ? <Clock size={20} color="var(--secondary)" /> : 
+           stat.id === 3 ? <FileSpreadsheet size={20} color="#8b5cf6" /> : 
+           <Sparkles size={20} color="#f59e0b" />}
         </div>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ color: 'var(--text-muted)', fontSize: '0.85rem', borderBottom: '1px solid var(--border-color)' }}>
-              <th style={{ padding: '12px 8px' }}>PRODUIT</th>
-              <th style={{ padding: '12px 8px' }}>CATÉGORIE</th>
-              <th style={{ padding: '12px 8px' }}>MARQUE</th>
-              <th style={{ padding: '12px 8px' }}>PRIX</th>
-              <th style={{ padding: '12px 8px' }}>STATUT</th>
-              <th style={{ padding: '12px 8px' }}>DATE</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.length > 0 ? products.map((product) => (
-              <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '0.9rem' }} className="table-row">
-                <td style={{ padding: '16px 8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img 
-                      src={product.image_path ? `http://localhost:8000/storage/${product.image_path}` : 'https://via.placeholder.com/40'} 
-                      alt="" 
-                      style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} 
-                    />
-                    <span style={{ fontWeight: '500' }}>{product.name || 'Produit sans nom'}</span>
-                  </div>
-                </td>
-                <td style={{ padding: '16px 8px', color: 'var(--text-secondary)' }}>{product.category || 'Non classé'}</td>
-                <td style={{ padding: '16px 8px' }}>
-                  <span style={{ 
-                    background: 'rgba(255, 255, 255, 0.05)', 
-                    padding: '4px 8px', 
-                    borderRadius: '6px',
-                    fontSize: '0.8rem'
-                  }}>{product.brand || '-'}</span>
-                </td>
-                <td style={{ padding: '16px 8px', fontWeight: '600' }}>{product.price ? `${product.price} €` : '-'}</td>
-                <td style={{ padding: '16px 8px' }}>
-                  <span style={{ 
-                    color: (product.status === 'completed' || product.status === 'analyzed') ? 'var(--accent-secondary)' : 'var(--accent-primary)',
-                    fontSize: '0.8rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    ● {product.status === 'completed' ? 'Publié' : (product.status === 'analyzed' ? 'Analyse terminée' : product.status)}
-                  </span>
-                </td>
-                <td style={{ padding: '16px 8px', color: 'var(--text-muted)' }}>
-                  {new Date(product.created_at).toLocaleDateString()}
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  Aucun produit trouvé. Commencez par en scanner un !
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      )}
+        <div style={{
+          fontSize: '0.75rem',
+          fontWeight: '700',
+          color: isPositive ? 'var(--secondary)' : '#ef4444',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '2px'
+        }}>
+          {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+          {stat.change}
+        </div>
+      </div>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '500' }}>{stat.label}</p>
+      <h3 style={{ fontSize: '1.75rem', marginTop: '4px' }}>{stat.value}</h3>
     </div>
-    <style>{`
-      .table-row:hover {
-        background: rgba(255, 255, 255, 0.02);
-      }
-    `}</style>
-  </div>
-);
+  );
+};
 
-const Dashboard = ({ onStartScan }) => {
+const Dashboard = ({ onStartScan, hideStats = false }) => {
   const [products, setProducts] = useState([]);
+  const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState(MOCK_STATS);
+  const { addToast } = useToast();
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const data = await ProductService.getProducts();
-        setProducts(data.data || []);
-        
-        // Optionally update stats based on real data
-        if (data.total !== undefined) {
-          const newStats = [...MOCK_STATS];
-          newStats[0].value = data.total.toLocaleString();
-          setStats(newStats);
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération des produits:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
 
+  const fetchDashboardData = async () => {
+    try {
+      const data = await ProductService.getDashboardStats();
+      setStats(data.stats);
+      setProducts(data.recent_products);
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+      addToast("Erreur lors du chargement des statistiques", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Supprimer ce produit ?")) {
+      try {
+        await ProductService.deleteProduct(id);
+        setProducts(prev => prev.filter(p => p.id !== id));
+      } catch (err) {
+        addToast("Erreur lors de la suppression", "error");
+      }
+    }
+  };
+
   return (
-    <div>
-      <header style={{ marginBottom: 'var(--spacing-xl)' }}>
-        <h1 style={{ fontSize: '2.2rem', marginBottom: '8px' }}>Bon retour 👋</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Voici ce qui s'est passé sur votre catalogue aujourd'hui.</p>
-      </header>
-
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-        gap: 'var(--spacing-md)' 
-      }}>
-        {stats.map(stat => <StatCard key={stat.id} stat={stat} />)}
-      </div>
-
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '2fr 1fr', 
-        gap: 'var(--spacing-lg)',
-        marginTop: 'var(--spacing-lg)'
-      }}>
-        <RecentActivity products={products} loading={loading} />
-        
-        <div className="glass-card" style={{ marginTop: 'var(--spacing-lg)' }}>
-          <h3 style={{ fontSize: '1.2rem', marginBottom: 'var(--spacing-md)' }}>Quick Actions</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button className="action-btn primary" onClick={onStartScan}>
-              <BrainCircuit size={18} /> Lancer un scan IA
-            </button>
-            <button className="action-btn secondary">
-              <FileSpreadsheet size={18} /> Exporter en CSV
-            </button>
-            <button className="action-btn secondary">
-              <Package size={18} /> Gérer le stock
+    <div className="animate-fade-in">
+      {!hideStats && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
+            <div>
+              <h1 style={{ fontSize: '2.5rem' }}>Vue d'ensemble</h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Bienvenue sur votre espace de gestion ScanFlow.</p>
+            </div>
+            <button className="btn btn-primary" onClick={onStartScan} style={{ height: '48px', padding: '0 24px' }}>
+              <Plus size={20} /> Nouvelle Analyse
             </button>
           </div>
+
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+            gap: '24px',
+            marginBottom: '32px'
+          }}>
+            {stats.map(stat => <StatCard key={stat.id} stat={stat} />)}
+          </div>
+        </>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: hideStats ? '1fr' : '2fr 1fr', gap: '32px' }}>
+        <div className="card" style={{ padding: '0' }}>
+          <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: '1.25rem' }}>Activités récentes</h3>
+            <button className="btn btn-secondary" style={{ fontSize: '0.85rem', padding: '6px 12px' }}>Voir tout</button>
+          </div>
+          
+          <div className="table-container">
+            {loading ? (
+              <div style={{ padding: '48px', textAlign: 'center' }}>
+                <Loader2 className="spin" size={32} color="var(--primary)" />
+              </div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Catégorie</th>
+                    <th>Prix</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.length > 0 ? products.map((product) => (
+                    <tr key={product.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <img 
+                            src={product.image_path ? `http://localhost:8000/storage/${product.image_path}` : 'https://via.placeholder.com/48'} 
+                            alt="" 
+                            style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border)' }} 
+                          />
+                          <div>
+                            <p style={{ fontWeight: '600', fontSize: '0.9rem' }}>{product.name || 'Analyse en cours...'}</p>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{new Date(product.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{product.category || '-'}</td>
+                      <td style={{ fontWeight: '600' }}>{product.price ? `${product.price} €` : '-'}</td>
+                      <td>
+                        <span className={`badge ${
+                          product.status === 'completed' ? 'badge-success' : 
+                          product.status === 'analyzed' ? 'badge-blue' : 'badge-pending'
+                        }`}>
+                          {product.status === 'completed' ? 'Vérifié' : 
+                           product.status === 'analyzed' ? 'Prêt' : 'En cours'}
+                        </span>
+                      </td>
+                      <td>
+                        <button onClick={() => handleDelete(product.id)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', transition: 'color 0.2s' }} onMouseOver={(e) => e.target.style.color = '#ef4444'} onMouseOut={(e) => e.target.style.color = '#94a3b8'}>
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', padding: '64px', color: 'var(--text-light)' }}>
+                        <Package size={48} style={{ marginBottom: '12px', opacity: 0.2 }} />
+                        <p>Aucun produit à afficher</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
+
+        {!hideStats && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #4338ca 100%)', color: 'white', border: 'none' }}>
+              <div style={{ background: 'rgba(255,255,255,0.2)', padding: '10px', borderRadius: '12px', width: 'fit-content', marginBottom: '16px' }}>
+                <Sparkles size={20} color="white" />
+              </div>
+              <h3 style={{ color: 'white', marginBottom: '8px' }}>Gagnez du temps</h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '20px' }}>
+                L'IA de ScanFlow réduit le temps de saisie de 85% en moyenne.
+              </p>
+              <button className="btn" style={{ background: 'white', color: 'var(--primary)', width: '100%' }}>
+                En savoir plus
+              </button>
+            </div>
+
+            <div className="card">
+              <h4 style={{ marginBottom: '16px' }}>Conseils du jour</h4>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {[
+                  'Optimisez l\'éclairage de vos photos.',
+                  'Vérifiez les catégories suggérées.',
+                  'Exportez vos fichiers par lots.'
+                ].map((tip, i) => (
+                  <li key={i} style={{ fontSize: '0.85rem', display: 'flex', gap: '8px', color: 'var(--text-muted)' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary)', marginTop: '6px', flexShrink: 0 }}></div>
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
-        .action-btn {
-          width: 100%;
-          padding: 14px;
-          border-radius: var(--radius-md);
-          display: flex;
-          alignItems: center;
-          justify-content: center;
-          gap: 10px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          border: none;
-        }
-        .action-btn.primary {
-          background: var(--accent-primary);
-          color: white;
-          box-shadow: var(--shadow-accent);
-        }
-        .action-btn.primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
-        }
-        .action-btn.secondary {
-          background: rgba(255, 255, 255, 0.05);
-          color: var(--text-primary);
-          border: 1px solid var(--border-color);
-        }
-        .action-btn.secondary:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

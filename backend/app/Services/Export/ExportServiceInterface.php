@@ -15,4 +15,13 @@ interface ExportServiceInterface
      * @return string The URL or path to the generated file
      */
     public function generate(Product $product, Platform $platform): string;
+
+    /**
+     * Generate a CSV file for multiple products and a platform.
+     *
+     * @param \Illuminate\Support\Collection|array $products
+     * @param Platform $platform
+     * @return string
+     */
+    public function generateBatch($products, Platform $platform): string;
 }
