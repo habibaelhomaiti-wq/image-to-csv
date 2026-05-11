@@ -16,12 +16,7 @@ const Sidebar = ({ currentView, onViewChange, onLogout }) => {
     { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
     { id: 'product-lists', icon: History, label: 'Mes Listes' },
     { id: 'all-products', icon: Database, label: 'Catalogue' },
-    { id: 'templates', icon: Layout, label: 'Quabls' },
-  ];
-
-  const bottomItems = [
-    { icon: Bell, label: 'Notifications' },
-    { icon: Settings, label: 'Paramètres' },
+    { id: 'templates', icon: Layout, label: 'Modèles' },
   ];
 
   return (
@@ -92,15 +87,7 @@ const Sidebar = ({ currentView, onViewChange, onLogout }) => {
 
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
         <ul style={{ listStyle: 'none' }}>
-          {bottomItems.map((item, idx) => (
-            <li key={idx} style={{ marginBottom: '4px' }}>
-              <button className="sidebar-link">
-                <item.icon size={18} />
-                {item.label}
-              </button>
-            </li>
-          ))}
-          <li style={{ marginTop: '16px' }}>
+          <li>
             <button 
               onClick={onLogout}
               className="sidebar-link logout"

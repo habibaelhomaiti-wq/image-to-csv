@@ -84,6 +84,19 @@ class ProductController extends Controller
         return response()->json(null, 204);
     }
 
+    public function destroy(Product $product)
+    {
+        $this->authorize('delete', $product);
+
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
+        $product->delete();
+
+        return response()->json(null, 204);
+    }
+
     public function bulkDelete(Request $request)
     {
         $request->validate([
