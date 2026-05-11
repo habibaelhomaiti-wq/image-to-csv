@@ -16,7 +16,7 @@ const ProductListDetail = ({ listId, onBack, onAddProducts }) => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
-  const { addToast } = useToast();
+  const { addToast, removeToast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,6 +108,7 @@ const ProductListDetail = ({ listId, onBack, onAddProducts }) => {
       addToast(err.response?.data?.message || "Erreur export", "error");
     } finally {
       setExporting(false);
+      removeToast(toastId);
     }
   };
 

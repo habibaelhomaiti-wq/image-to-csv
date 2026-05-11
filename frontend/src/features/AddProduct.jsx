@@ -18,7 +18,7 @@ const AddProduct = ({ listId, onFinish }) => {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
-  const { addToast } = useToast();
+  const { addToast, removeToast } = useToast();
 
   const pollIntervals = useRef({});
 
@@ -140,6 +140,7 @@ const AddProduct = ({ listId, onFinish }) => {
       addToast("Une erreur est survenue lors de l'exportation.", "error");
     } finally {
       setExporting(false);
+      removeToast(toastId);
     }
   };
 
